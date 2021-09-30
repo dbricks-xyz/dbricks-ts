@@ -23,10 +23,13 @@
         "*.js"
       ],
       "rules": {
+        "import/extensions": "off",
         "import/no-unresolved": "off",
         "import/prefer-default-export": "off",
         "no-shadow": "off",
-        "no-unused-vars": "off"
+        "no-unused-vars": "off",
+        "class-methods-use-this": "off",
+        "no-underscore-dangle": "off"
       }
     }
   ]
