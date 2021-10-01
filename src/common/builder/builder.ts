@@ -7,22 +7,37 @@ import { deserializeInstructionsAndSigners } from '../common.serializers';
 
 // --------------------------------------- types
 
-// todo is it a good idea to type out protocol & action instead of just 'string'? Any pitfalls down the road?
-type Protocol = 'serum' | 'mango' | 'saber'
-type Action = 'placeOrder' | 'cancelOrder' | 'initMarket' | 'settleMarket'
+export enum Protocol {
+  Serum = 'Serum',
+  Mango = 'Mango',
+  Saber = 'Saber',
+}
 
-// todo a general question - does it seem ok to have so many "related by different" types?
+// store 3 pieces of info: name [space] method [space] route
+export enum Serum {
+  PlaceOrder = 'PlaceOrder POST /serum/orders',
+  CancelOrder = 'CancelOrder POST /serum/orders/cancel',
+  InitMarket = 'InitMarket POST /serum/markets',
+  SettleMarket = 'SettleMarket POST /serum/markets/settle',
+}
 
-// todo should these be interfaces or types?
+export enum Mango {
+  Deposit = 'POST /tbd',
+}
+
+// this is a way of doing nested enums in TS
+export const Action = { Serum, Mango };
+export type ActionType = Serum | Mango;
+
 type RawBrick = {
   protocol: Protocol,
-  action: Action,
+  action: ActionType,
   args: any, // temp
 }
 
 type ParsedBrick = {
   protocol: Protocol,
-  action: Action,
+  action: ActionType,
   method: Method,
   route: string,
   payload: any, // temp
@@ -30,19 +45,19 @@ type ParsedBrick = {
 
 type FetchedBrick = {
   protocol: Protocol,
-  action: Action,
+  action: ActionType,
   instructionsAndSigners: instructionsAndSigners[],
 }
 
 type FlattenedBrick = {
   protocol: Protocol,
-  action: Action,
+  action: ActionType,
   instructionsAndSigners: instructionsAndSigners,
 }
 
 type SizedBrick = {
   protocols: Protocol[],
-  actions: Action[],
+  actions: ActionType[],
   transaction: Transaction,
   signers: Signer[],
 }
@@ -68,24 +83,14 @@ export class Builder {
     this.rawBricks.push(brick);
   }
 
-  // todo what's the best way to do this step? We can't be reading a file since this package might be used in front ends
   parseBricks(rawBricks: RawBrick[]): ParsedBrick[] {
-    const routes = {
-      serum: {
-        placeOrder: {
-          method: 'POST',
-          route: '/serum/orders',
-        },
-      },
-    };
     const parsedBricks = rawBricks.map((b) => {
-      // @ts-ignore - temp
-      const parsedBrick = routes[b.protocol][b.action];
+      const [_, method, route] = b.action.split(' ');
       return {
         protocol: b.protocol,
         action: b.action,
-        method: parsedBrick.method,
-        route: parsedBrick.route,
+        method: method as Method,
+        route,
         payload: b.args,
       };
     });
@@ -193,7 +198,7 @@ export class Builder {
         .then((sig) => {
           console.log(`Transaction successful, ${sig}.`);
           for (let i = 0; i < b.protocols.length; i += 1) {
-            console.log(`${b.protocols[i]}/${b.actions[i]} brick executed.`);
+            console.log(`${b.protocols[i]}/${b.actions[i].split(' ')[0]} brick executed.`);
           }
         })
         .catch((e) => {
@@ -210,7 +215,6 @@ export class Builder {
   }
 
   async build(signCallback: any) {
-    // todo I went with the approach of not saving intermediate states to the class, and instead passing them around. Is that wise?
     const parsedBricks = this.parseBricks(this.rawBricks);
     const fetchedBricks = await this.fetchBricks(parsedBricks);
     const flattenedBricks = this.flattenBricks(fetchedBricks);

@@ -1,6 +1,6 @@
-import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
+import { Keypair, Transaction } from '@solana/web3.js';
 import fs from 'fs';
-import { Builder } from './src/common/builder/builder';
+import { Action, Builder, Protocol } from './src/common/builder/builder';
 
 export function loadKeypairSync(path: string): Keypair {
   const secretKey = JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -37,8 +37,8 @@ async function play() {
     ownerKp.publicKey,
   );
   builder.addBrick({
-    protocol: 'serum',
-    action: 'placeOrder',
+    protocol: Protocol.Serum,
+    action: Action.Serum.PlaceOrder,
     args: {
       marketPubkey: '3d4rzwpy9iGdCZvgxcu7B1YocYffVLsQXPXkBZKt2zLc',
       side: 'buy',
@@ -47,17 +47,17 @@ async function play() {
       orderType: 'limit',
     },
   });
-  builder.addBrick({
-    protocol: 'serum',
-    action: 'placeOrder',
-    args: {
-      marketPubkey: '3d4rzwpy9iGdCZvgxcu7B1YocYffVLsQXPXkBZKt2zLc',
-      side: 'buy',
-      price: '0.4',
-      size: '1',
-      orderType: 'limit',
-    },
-  });
+  // builder.addBrick({
+  //   protocol: Protocol.Serum,
+  //   action: SerumAction.PlaceOrder,
+  //   args: {
+  //     marketPubkey: '3d4rzwpy9iGdCZvgxcu7B1YocYffVLsQXPXkBZKt2zLc',
+  //     side: 'buy',
+  //     price: '0.4',
+  //     size: '1',
+  //     orderType: 'limit',
+  //   },
+  // });
   await builder.build(sign);
 }
 
