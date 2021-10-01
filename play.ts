@@ -31,11 +31,9 @@ function sign(tx: Transaction) {
 // }
 
 async function play() {
-  const builder = new Builder(
-    'https://api.mainnet-beta.solana.com',
-    'http://localhost:3000',
-    ownerKp.publicKey,
-  );
+  const builder = new Builder({
+    ownerPubkey: ownerKp.publicKey,
+  });
   builder.addBrick({
     protocol: Protocol.Serum,
     action: Action.Serum.PlaceOrder,

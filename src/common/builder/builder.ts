@@ -62,21 +62,41 @@ type SizedBrick = {
   signers: Signer[],
 }
 
+// todo later this will be prod server url
+const DEFAULT_BASE_URL = 'http://localhost:3000';
+const DEFAULT_CONNECTION_URL = 'https://api.mainnet-beta.solana.com';
+
 // --------------------------------------- core
+
+type BuilderParams = {
+  ownerPubkey: PublicKey,
+  connectionUrl?: string,
+  baseUrl?: string,
+  apiKey?: string,
+}
 
 export class Builder {
   connection: Connection;
-
-  rawBricks: RawBrick[] = [];
 
   ownerPubkey: PublicKey;
 
   baseUrl: string;
 
-  constructor(connectionUrl: string, baseUrl: string, ownerPubkey: PublicKey) {
+  // not all methods require communicating with the api, hence it's ok for this to be blank
+  apiKey?: string;
+
+  rawBricks: RawBrick[] = [];
+
+  constructor({
+    ownerPubkey,
+    connectionUrl = DEFAULT_CONNECTION_URL,
+    baseUrl = DEFAULT_BASE_URL,
+    apiKey,
+  } = {} as BuilderParams) {
     this.connection = new Connection(connectionUrl);
     this.baseUrl = baseUrl;
     this.ownerPubkey = ownerPubkey;
+    this.apiKey = apiKey;
   }
 
   addBrick(brick: RawBrick) {
