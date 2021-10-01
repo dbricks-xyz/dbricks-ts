@@ -2,6 +2,7 @@ import {
   Connection, PublicKey, Transaction, TransactionSignature,
 } from '@solana/web3.js';
 import axios, { AxiosPromise, Method } from 'axios';
+import winston from 'winston';
 import { deserializeInstructionsAndSigners } from '../common.serializers';
 import {
   BuilderParams,
@@ -53,7 +54,7 @@ export class Builder {
         payload: b.args,
       };
     });
-    console.log('Parsed bricks:', parsedBricks);
+    winston.debug('Parsed bricks:', parsedBricks);
     return parsedBricks;
   }
 
@@ -84,7 +85,7 @@ export class Builder {
         responses[i].data,
       );
     }
-    console.log('Fetched bricks from server:', fetchedBricks);
+    winston.debug('Fetched bricks from server:', fetchedBricks);
     return fetchedBricks;
   }
 
@@ -101,12 +102,12 @@ export class Builder {
         }
       });
     });
-    console.log('Flattened bricks', flattenedBricks);
+    winston.debug('Flattened bricks', flattenedBricks);
     return flattenedBricks;
   }
 
   async optimallySizeBricks(flattenedBricks: FlattenedBrick[]): Promise<SizedBrick[]> {
-    console.log(`Attempting transaction with ${flattenedBricks.length} bricks`);
+    winston.debug(`Attempting transaction with ${flattenedBricks.length} bricks`);
     const attemptedBrick: SizedBrick = {
       protocols: [],
       actions: [],
@@ -126,11 +127,11 @@ export class Builder {
       const buf = attemptedBrick.transaction.serialize({
         verifySignatures: false,
       });
-      console.log(`Transaction of size ${buf.length} fits ${flattenedBricks.length} bricks just ok`);
+      winston.debug(`Transaction of size ${buf.length} fits ${flattenedBricks.length} bricks just ok`);
       return [attemptedBrick];
     } catch (e) {
       const middle = Math.ceil(flattenedBricks.length / 2);
-      console.log(`Transaction with ${flattenedBricks.length} bricks is too large, breaking into 2 at ${middle}`);
+      winston.debug(`Transaction with ${flattenedBricks.length} bricks is too large, breaking into 2 at ${middle}`);
       const left = flattenedBricks.splice(0, middle);
       const right = flattenedBricks.splice(-middle);
       return [
@@ -175,21 +176,21 @@ export class Builder {
       promises.push(p);
       p
         .then((sig) => {
-          console.log(`Transaction successful, ${sig}.`);
+          winston.debug(`Transaction successful, ${sig}.`);
           for (let i = 0; i < b.protocols.length; i += 1) {
-            console.log(`${b.protocols[i]}/${b.actions[i].split(' ')[0]} brick executed.`);
+            winston.debug(`${b.protocols[i]}/${b.actions[i].split(' ')[0]} brick executed.`);
           }
         })
         .catch((e) => {
-          console.log(`Transaction failed, ${e}.`);
+          winston.debug(`Transaction failed, ${e}.`);
         });
     });
     await Promise.all(promises)
       .then(() => {
-        console.log('All transactions succeeded.');
+        winston.debug('All transactions succeeded.');
       })
       .catch(() => {
-        console.log('Some transactions failed, see log.');
+        winston.debug('Some transactions failed, see log.');
       });
   }
 
