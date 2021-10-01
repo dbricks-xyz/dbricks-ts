@@ -1,7 +1,10 @@
-export interface IMangoLenderWithdrawParams {
+export interface IMangoLenderWithdrawArgs {
   mintPubkey: string,
   quantity: string,
   isBorrow: boolean,
-  ownerPubkey: string,
   mangoAccountNumber: string,
+}
+
+export interface IMangoLenderWithdrawParams extends IMangoLenderWithdrawArgs {
+  ownerPubkey: string,
 }

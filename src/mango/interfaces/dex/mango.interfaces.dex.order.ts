@@ -1,7 +1,16 @@
 import {
-  ISerumDEXOrderCancelParams,
+  ISerumDEXOrderCancelArgs,
+  ISerumDEXOrderCancelParams, ISerumDEXOrderPlaceArgs,
   ISerumDEXOrderPlaceParams,
-} from '../../../serum/interfaces/dex/serum.interfaces.dex.order';
+} from '../../../serum';
+
+export interface IMangoDEXOrderPlaceArgs extends ISerumDEXOrderPlaceArgs{
+  mangoAccountNumber: string,
+}
+
+export interface IMangoDEXOrderCancelArgs extends ISerumDEXOrderCancelArgs {
+  mangoAccountNumber: string,
+}
 
 export interface IMangoDEXOrderPlaceParams extends ISerumDEXOrderPlaceParams{
   mangoAccountNumber: string,

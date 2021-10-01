@@ -1,6 +1,9 @@
-export interface IMangoLenderDepositParams {
+export interface IMangoLenderDepositArgs {
   mintPubkey: string,
   quantity: string,
-  ownerPubkey: string,
   mangoAccountNumber: string,
+}
+
+export interface IMangoLenderDepositParams extends IMangoLenderDepositArgs {
+  ownerPubkey: string,
 }

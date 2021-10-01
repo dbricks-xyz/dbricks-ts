@@ -1,23 +1,29 @@
 import { Signer, TransactionInstruction } from '@solana/web3.js';
 import { serializedInstruction, serializedSigner } from './common.serializers';
 import {
-  ISerumDEXOrderCancelParams,
-  ISerumDEXOrderPlaceParams,
-} from '../serum/interfaces/dex/serum.interfaces.dex.order';
-import {
+  ISerumDEXMarketInitArgs,
   ISerumDEXMarketInitParams,
+  ISerumDEXMarketSettleArgs,
   ISerumDEXMarketSettleParams,
-} from '../serum/interfaces/dex/serum.interfaces.dex.market';
-import { IMangoLenderDepositParams } from '../mango/interfaces/lender/mango.interfaces.deposit';
-import { IMangoLenderWithdrawParams } from '../mango/interfaces/lender/mango.interfaces.withdraw';
+  ISerumDEXOrderCancelArgs,
+  ISerumDEXOrderCancelParams,
+  ISerumDEXOrderPlaceArgs,
+  ISerumDEXOrderPlaceParams,
+} from '../serum';
 import {
-  IMangoDEXOrderCancelParams,
-  IMangoDEXOrderPlaceParams,
-} from '../mango/interfaces/dex/mango.interfaces.dex.order';
-import {
+  IMangoDEXMarketInitArgs,
   IMangoDEXMarketInitParams,
+  IMangoDEXMarketSettleArgs,
   IMangoDEXMarketSettleParams,
-} from '../mango/interfaces/dex/mango.interfaces.dex.market';
+  IMangoDEXOrderCancelArgs,
+  IMangoDEXOrderCancelParams,
+  IMangoDEXOrderPlaceArgs,
+  IMangoDEXOrderPlaceParams,
+  IMangoLenderDepositArgs,
+  IMangoLenderDepositParams,
+  IMangoLenderWithdrawArgs,
+  IMangoLenderWithdrawParams,
+} from '../mango';
 
 export type instructionsAndSigners = {
   instructions: TransactionInstruction[],
@@ -29,9 +35,16 @@ export type serializedInstructionsAndSigners = {
   signers: serializedSigner[],
 }
 
-// --------------------------------------- aggregeated types
+export type IBrickArgs =
+  // serum
+  ISerumDEXOrderPlaceArgs | ISerumDEXOrderCancelArgs |
+  ISerumDEXMarketInitArgs | ISerumDEXMarketSettleArgs |
+  // mango
+  IMangoLenderDepositArgs | IMangoLenderWithdrawArgs |
+  IMangoDEXOrderPlaceArgs | IMangoDEXOrderCancelArgs |
+  IMangoDEXMarketInitArgs | IMangoDEXMarketSettleArgs
 
-export type BrickPayload =
+export type IBrickParams =
   // serum
   ISerumDEXOrderPlaceParams | ISerumDEXOrderCancelParams |
   ISerumDEXMarketInitParams | ISerumDEXMarketSettleParams |

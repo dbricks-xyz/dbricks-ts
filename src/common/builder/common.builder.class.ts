@@ -5,11 +5,15 @@ import axios, { AxiosPromise, Method } from 'axios';
 import winston from 'winston';
 import { deserializeInstructionsAndSigners } from '../common.serializers';
 import {
-  BuilderParams,
-  DEFAULT_BASE_URL,
-  DEFAULT_CONNECTION_URL, FetchedBrick, FlattenedBrick,
-  ParsedBrick,
-  RawBrick, SizedBrick,
+  DEFAULT_BASE_URL, DEFAULT_COMMITTMENT,
+  DEFAULT_CONNECTION_URL,
+  endpoints,
+  IBuilderParams,
+  IFetchedBrick,
+  IFlattenedBrick,
+  IParsedBrick,
+  IRawBrick,
+  ISizedBrick,
 } from './common.builder.types';
 import { asyncTimeout } from '../common.utils';
 
@@ -23,15 +27,16 @@ export class Builder {
   // not all methods require communicating with the api, hence it's ok for this to be blank
   apiKey?: string;
 
-  rawBricks: RawBrick[] = [];
+  rawBricks: IRawBrick[] = [];
 
   constructor({
     ownerPubkey,
     connectionUrl = DEFAULT_CONNECTION_URL,
+    committment = DEFAULT_COMMITTMENT,
     baseUrl = DEFAULT_BASE_URL,
     apiKey,
-  } = {} as BuilderParams) {
-    this.connection = new Connection(connectionUrl);
+  } = {} as IBuilderParams) {
+    this.connection = new Connection(connectionUrl, committment);
     this.baseUrl = baseUrl;
     this.ownerPubkey = ownerPubkey;
     this.apiKey = apiKey;
@@ -39,27 +44,29 @@ export class Builder {
 
   // --------------------------------------- core methods
 
-  addBrick(brick: RawBrick) {
+  addBrick(brick: IRawBrick) {
     this.rawBricks.push(brick);
   }
 
-  parseBricks(rawBricks: RawBrick[]): ParsedBrick[] {
+  parseBricks(rawBricks: IRawBrick[]): IParsedBrick[] {
     const parsedBricks = rawBricks.map((b) => {
-      const [_, method, route] = b.action.split(' ');
+      // @ts-ignore
+      const endpoint = endpoints[b.protocol][b.action];
+      const [method, route] = endpoint.split(' ');
       return {
         protocol: b.protocol,
         action: b.action,
         method: method as Method,
         route,
-        payload: b.args,
+        args: b.args,
       };
     });
     winston.debug('Parsed bricks:', parsedBricks);
     return parsedBricks;
   }
 
-  async fetchBricks(parsedBricks: ParsedBrick[]): Promise<FetchedBrick[]> {
-    const fetchedBricks: FetchedBrick[] = [];
+  async fetchBricks(parsedBricks: IParsedBrick[]): Promise<IFetchedBrick[]> {
+    const fetchedBricks: IFetchedBrick[] = [];
     const requests: AxiosPromise[] = [];
     parsedBricks.forEach((b) => {
       const request = axios({
@@ -67,7 +74,7 @@ export class Builder {
         method: b.method,
         url: b.route,
         data: {
-          ...b.payload,
+          ...b.args,
           ownerPubkey: this.ownerPubkey.toBase58(),
         },
       });
@@ -89,8 +96,8 @@ export class Builder {
     return fetchedBricks;
   }
 
-  flattenBricks(fetchedBricks: FetchedBrick[]): FlattenedBrick[] {
-    const flattenedBricks: FlattenedBrick[] = [];
+  flattenBricks(fetchedBricks: IFetchedBrick[]): IFlattenedBrick[] {
+    const flattenedBricks: IFlattenedBrick[] = [];
     fetchedBricks.forEach((b) => {
       b.instructionsAndSigners.forEach((i) => {
         if (i.instructions.length > 0) {
@@ -106,9 +113,9 @@ export class Builder {
     return flattenedBricks;
   }
 
-  async optimallySizeBricks(flattenedBricks: FlattenedBrick[]): Promise<SizedBrick[]> {
+  async optimallySizeBricks(flattenedBricks: IFlattenedBrick[]): Promise<ISizedBrick[]> {
     winston.debug(`Attempting transaction with ${flattenedBricks.length} bricks`);
-    const attemptedBrick: SizedBrick = {
+    const attemptedBrick: ISizedBrick = {
       protocols: [],
       actions: [],
       transaction: new Transaction(),
@@ -143,7 +150,7 @@ export class Builder {
 
   // if the exact same transaction has been executed before, we need to update the blockhash
   // otherwise it will fail with "This transaction has already been processed"
-  async updateBlockhashOnSimilarTransactions(sizedBricks: SizedBrick[]): Promise<SizedBrick[]> {
+  async updateBlockhashOnSimilarTransactions(sizedBricks: ISizedBrick[]): Promise<ISizedBrick[]> {
     const sizedBricksCopy = [...sizedBricks];
     const stringifiedBricks: string[] = [];
 
@@ -163,49 +170,52 @@ export class Builder {
 
   // the reason we need to take a callback is because there are many different ways to sign
   // eg user can load keypair & sign directly, or they can use a wallet adapter
-  async executeBricks(sizedBricks: SizedBrick[], signCallback: any): Promise<void> {
+  // todo need better type for callback
+  async executeBricks(sizedBricks: ISizedBrick[], signCallback: any, callbackArgs: any[] = []): Promise<void> {
     const promises: Promise<TransactionSignature>[] = [];
-    sizedBricks.forEach((b) => {
+    for (const b of sizedBricks) {
       // sign with the owner's keypair
-      const signedTransaction = signCallback(b.transaction);
-      // sign with additional signers
-      if (b.signers.length > 0) {
-        signedTransaction.sign(...b.signers);
-      }
-      const p = this.connection.sendRawTransaction(signedTransaction.serialize());
-      promises.push(p);
-      p
-        .then((sig) => {
-          winston.debug(`Transaction successful, ${sig}.`);
-          for (let i = 0; i < b.protocols.length; i += 1) {
-            winston.debug(`${b.protocols[i]}/${b.actions[i].split(' ')[0]} brick executed.`);
-          }
-        })
-        .catch((e) => {
-          winston.debug(`Transaction failed, ${e}.`);
-        });
-    });
+      signCallback(b.transaction, ...callbackArgs).then((signedTransaction: Transaction) => {
+        // sign with additional signers
+        if (b.signers.length > 0) {
+          signedTransaction.sign(...b.signers);
+        }
+        const p = this.connection.sendRawTransaction(signedTransaction.serialize());
+        promises.push(p);
+        p
+          .then((sig) => {
+            // todo winston.debug
+            console.log(`Transaction successful, ${sig}.`);
+            for (let i = 0; i < b.protocols.length; i += 1) {
+              console.log(`${b.protocols[i]}/${b.actions[i]} brick executed.`);
+            }
+          })
+          .catch((e) => {
+            console.log(`Transaction failed, ${e}.`);
+          });
+      });
+    }
     await Promise.all(promises)
       .then(() => {
-        winston.debug('All transactions succeeded.');
+        console.log('All transactions succeeded.');
       })
       .catch(() => {
-        winston.debug('Some transactions failed, see log.');
+        console.log('Some transactions failed, see log.');
       });
   }
 
-  async build(signCallback: any) {
+  async build(signCallback: any, callbackArgs: any[] = []) {
     const parsedBricks = this.parseBricks(this.rawBricks);
     const fetchedBricks = await this.fetchBricks(parsedBricks);
     const flattenedBricks = this.flattenBricks(fetchedBricks);
     const sizedBricks = await this.optimallySizeBricks(flattenedBricks);
     const finalBricks = await this.updateBlockhashOnSimilarTransactions(sizedBricks);
-    await this.executeBricks(finalBricks, signCallback);
+    await this.executeBricks(finalBricks, signCallback, callbackArgs);
   }
 
   // --------------------------------------- helpers
 
-  stringifySizedBrick(brick: SizedBrick): string {
+  stringifySizedBrick(brick: ISizedBrick): string {
     let result = '';
     brick.transaction.instructions.forEach((instruction) => {
       result += instruction.data.toString();
