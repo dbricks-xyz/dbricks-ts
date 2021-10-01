@@ -172,36 +172,22 @@ export class Builder {
   // eg user can load keypair & sign directly, or they can use a wallet adapter
   // todo need better type for callback
   async executeBricks(sizedBricks: ISizedBrick[], signCallback: any, callbackArgs: any[] = []): Promise<void> {
-    const promises: Promise<TransactionSignature>[] = [];
     for (const b of sizedBricks) {
-      // sign with the owner's keypair
-      signCallback(b.transaction, ...callbackArgs).then((signedTransaction: Transaction) => {
-        // sign with additional signers
-        if (b.signers.length > 0) {
-          signedTransaction.sign(...b.signers);
-        }
-        const p = this.connection.sendRawTransaction(signedTransaction.serialize());
-        promises.push(p);
-        p
-          .then((sig) => {
-            // todo winston.debug
-            console.log(`Transaction successful, ${sig}.`);
-            for (let i = 0; i < b.protocols.length; i += 1) {
-              console.log(`${b.protocols[i]}/${b.actions[i]} brick executed.`);
-            }
-          })
-          .catch((e) => {
-            console.log(`Transaction failed, ${e}.`);
-          });
-      });
+      // sign with the owner's keypair - we want this to be blocking for the loop
+      // eslint-disable-next-line no-await-in-loop
+      const signedTransaction = await signCallback(b.transaction, ...callbackArgs);
+      // sign with additional signers
+      if (b.signers.length > 0) {
+        signedTransaction.sign(...b.signers);
+      }
+      // eslint-disable-next-line no-await-in-loop
+      const sig = await this.connection.sendRawTransaction(signedTransaction.serialize());
+      // todo move to winston
+      console.log(`Transaction successful, ${sig}.`);
+      for (let i = 0; i < b.protocols.length; i += 1) {
+        console.log(`${b.protocols[i]}/${b.actions[i]} brick executed.`);
+      }
     }
-    await Promise.all(promises)
-      .then(() => {
-        console.log('All transactions succeeded.');
-      })
-      .catch(() => {
-        console.log('Some transactions failed, see log.');
-      });
   }
 
   async build(signCallback: any, callbackArgs: any[] = []) {

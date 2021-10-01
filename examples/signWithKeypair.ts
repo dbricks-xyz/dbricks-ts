@@ -20,6 +20,7 @@ async function sign(tx: Transaction, test1: string, test2: string): Promise<Tran
 async function play() {
   const builder = new Builder({
     ownerPubkey: ownerKp.publicKey,
+    connectionUrl: 'https://solana-api.projectserum.com',
   });
   builder.addBrick({
     protocol: Protocol.Serum,
@@ -41,6 +42,13 @@ async function play() {
       price: '0.1',
       size: '1',
       orderType: 'ioc',
+    },
+  });
+  builder.addBrick({
+    protocol: Protocol.Serum,
+    action: Action.Serum.SettleMarket,
+    args: {
+      marketPubkey: '3d4rzwpy9iGdCZvgxcu7B1YocYffVLsQXPXkBZKt2zLc',
     },
   });
   await builder.build(sign, ['hello', 'world']);
