@@ -5,8 +5,8 @@
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
-  "name": "dbricks-ts",
-  "version": "0.0.1",
+  "name": "@dbricks/dbricks-ts",
+  "version": "0.0.2",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
