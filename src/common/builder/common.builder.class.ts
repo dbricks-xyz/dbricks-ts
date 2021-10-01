@@ -1,79 +1,16 @@
 import {
-  Connection, PublicKey, Signer, Transaction, TransactionSignature,
+  Connection, PublicKey, Transaction, TransactionSignature,
 } from '@solana/web3.js';
 import axios, { AxiosPromise, Method } from 'axios';
-import { instructionsAndSigners } from '../types/common.types';
 import { deserializeInstructionsAndSigners } from '../common.serializers';
-
-// --------------------------------------- types
-
-export enum Protocol {
-  Serum = 'Serum',
-  Mango = 'Mango',
-  Saber = 'Saber',
-}
-
-// store 3 pieces of info: name [space] method [space] route
-export enum Serum {
-  PlaceOrder = 'PlaceOrder POST /serum/orders',
-  CancelOrder = 'CancelOrder POST /serum/orders/cancel',
-  InitMarket = 'InitMarket POST /serum/markets',
-  SettleMarket = 'SettleMarket POST /serum/markets/settle',
-}
-
-export enum Mango {
-  Deposit = 'POST /tbd',
-}
-
-// this is a way of doing nested enums in TS
-export const Action = { Serum, Mango };
-export type ActionType = Serum | Mango;
-
-type RawBrick = {
-  protocol: Protocol,
-  action: ActionType,
-  args: any, // temp
-}
-
-type ParsedBrick = {
-  protocol: Protocol,
-  action: ActionType,
-  method: Method,
-  route: string,
-  payload: any, // temp
-}
-
-type FetchedBrick = {
-  protocol: Protocol,
-  action: ActionType,
-  instructionsAndSigners: instructionsAndSigners[],
-}
-
-type FlattenedBrick = {
-  protocol: Protocol,
-  action: ActionType,
-  instructionsAndSigners: instructionsAndSigners,
-}
-
-type SizedBrick = {
-  protocols: Protocol[],
-  actions: ActionType[],
-  transaction: Transaction,
-  signers: Signer[],
-}
-
-// todo later this will be prod server url
-const DEFAULT_BASE_URL = 'http://localhost:3000';
-const DEFAULT_CONNECTION_URL = 'https://api.mainnet-beta.solana.com';
-
-// --------------------------------------- core
-
-type BuilderParams = {
-  ownerPubkey: PublicKey,
-  connectionUrl?: string,
-  baseUrl?: string,
-  apiKey?: string,
-}
+import {
+  BuilderParams,
+  DEFAULT_BASE_URL,
+  DEFAULT_CONNECTION_URL, FetchedBrick, FlattenedBrick,
+  ParsedBrick,
+  RawBrick, SizedBrick,
+} from './common.builder.types';
+import { asyncTimeout } from '../common.utils';
 
 export class Builder {
   connection: Connection;
@@ -98,6 +35,8 @@ export class Builder {
     this.ownerPubkey = ownerPubkey;
     this.apiKey = apiKey;
   }
+
+  // --------------------------------------- core methods
 
   addBrick(brick: RawBrick) {
     this.rawBricks.push(brick);
@@ -201,6 +140,26 @@ export class Builder {
     }
   }
 
+  // if the exact same transaction has been executed before, we need to update the blockhash
+  // otherwise it will fail with "This transaction has already been processed"
+  async updateBlockhashOnSimilarTransactions(sizedBricks: SizedBrick[]): Promise<SizedBrick[]> {
+    const sizedBricksCopy = [...sizedBricks];
+    const stringifiedBricks: string[] = [];
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const brick of sizedBricksCopy) {
+      while (brick.transaction.recentBlockhash
+      && stringifiedBricks.indexOf(this.stringifySizedBrick(brick)) !== -1) {
+        /* eslint-disable no-await-in-loop */
+        await asyncTimeout(2000);
+        brick.transaction.recentBlockhash = (await this.connection.getRecentBlockhash()).blockhash;
+        /* eslint-enable no-await-in-loop */
+      }
+      stringifiedBricks.push(this.stringifySizedBrick(brick));
+    }
+    return sizedBricksCopy;
+  }
+
   // the reason we need to take a callback is because there are many different ways to sign
   // eg user can load keypair & sign directly, or they can use a wallet adapter
   async executeBricks(sizedBricks: SizedBrick[], signCallback: any): Promise<void> {
@@ -239,6 +198,18 @@ export class Builder {
     const fetchedBricks = await this.fetchBricks(parsedBricks);
     const flattenedBricks = this.flattenBricks(fetchedBricks);
     const sizedBricks = await this.optimallySizeBricks(flattenedBricks);
-    await this.executeBricks(sizedBricks, signCallback);
+    const finalBricks = await this.updateBlockhashOnSimilarTransactions(sizedBricks);
+    await this.executeBricks(finalBricks, signCallback);
+  }
+
+  // --------------------------------------- helpers
+
+  stringifySizedBrick(brick: SizedBrick): string {
+    let result = '';
+    brick.transaction.instructions.forEach((instruction) => {
+      result += instruction.data.toString();
+    });
+    result += brick.transaction.recentBlockhash;
+    return result;
   }
 }

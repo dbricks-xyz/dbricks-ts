@@ -1,13 +1,15 @@
 import { Keypair, Transaction } from '@solana/web3.js';
 import fs from 'fs';
-import { Action, Builder, Protocol } from './src/common/builder/builder';
+import { Action, Builder, Protocol } from '../src';
+
+require('dotenv').config();
 
 export function loadKeypairSync(path: string): Keypair {
   const secretKey = JSON.parse(fs.readFileSync(path, 'utf8'));
   return Keypair.fromSecretKey(Uint8Array.from(secretKey));
 }
 
-const ownerKp = loadKeypairSync('/Users/ilmoi/.config/solana/id.json');
+const ownerKp = loadKeypairSync(process.env.KEYPAIR_PATH as string);
 
 // option 1 - sign with keypair
 function sign(tx: Transaction) {

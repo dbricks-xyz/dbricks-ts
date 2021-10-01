@@ -1,7 +1,7 @@
 import {
   Keypair, PublicKey, Signer, TransactionInstruction,
 } from '@solana/web3.js';
-import { instructionsAndSigners, serializedInstructionsAndSigners } from './types/common.types';
+import { instructionsAndSigners, serializedInstructionsAndSigners } from './common.types';
 
 export type serializedAccount = {
   pubkey: string,
