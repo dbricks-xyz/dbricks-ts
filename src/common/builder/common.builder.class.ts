@@ -1,12 +1,9 @@
-import {
-  Connection, PublicKey, Transaction, TransactionSignature,
-} from '@solana/web3.js';
+import { Connection, PublicKey, Transaction } from '@solana/web3.js';
 import axios, { AxiosPromise, Method } from 'axios';
 import winston from 'winston';
 import { deserializeInstructionsAndSigners } from '../common.serializers';
 import {
-  DEFAULT_BASE_URL, DEFAULT_COMMITTMENT,
-  DEFAULT_CONNECTION_URL,
+  DEFAULT_BASE_URL,
   endpoints,
   IBuilderParams,
   IFetchedBrick,
@@ -31,8 +28,8 @@ export class Builder {
 
   constructor({
     ownerPubkey,
-    connectionUrl = DEFAULT_CONNECTION_URL,
-    committment = DEFAULT_COMMITTMENT,
+    connectionUrl,
+    committment,
     baseUrl = DEFAULT_BASE_URL,
     apiKey,
   } = {} as IBuilderParams) {
@@ -171,7 +168,16 @@ export class Builder {
   // the reason we need to take a callback is because there are many different ways to sign
   // eg user can load keypair & sign directly, or they can use a wallet adapter
   // todo need better type for callback
-  async executeBricks(sizedBricks: ISizedBrick[], signCallback: any, callbackArgs: any[] = []): Promise<void> {
+  async executeBricks(
+    sizedBricks: ISizedBrick[],
+    signCallback: (tx: Transaction, ...args:any) => Promise<Transaction>,
+    callbackArgs: any[] = [],
+  ): Promise<void> {
+    // todo move to winston
+    // winston.debug('debug!');
+    // winston.info('info!');
+    // winston.warn('warn!');
+    // winston.error('errr!');
     for (const b of sizedBricks) {
       // sign with the owner's keypair - we want this to be blocking for the loop
       // eslint-disable-next-line no-await-in-loop
@@ -182,7 +188,6 @@ export class Builder {
       }
       // eslint-disable-next-line no-await-in-loop
       const sig = await this.connection.sendRawTransaction(signedTransaction.serialize());
-      // todo move to winston
       console.log(`Transaction successful, ${sig}.`);
       for (let i = 0; i < b.protocols.length; i += 1) {
         console.log(`${b.protocols[i]}/${b.actions[i]} brick executed.`);

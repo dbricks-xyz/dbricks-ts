@@ -21,6 +21,7 @@ async function play() {
   const builder = new Builder({
     ownerPubkey: ownerKp.publicKey,
     connectionUrl: 'https://solana-api.projectserum.com',
+    committment: 'processed',
   });
   builder.addBrick({
     protocol: Protocol.Serum,

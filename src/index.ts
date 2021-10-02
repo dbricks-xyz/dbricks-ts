@@ -3,7 +3,6 @@ import winston from 'winston';
 require('dotenv').config();
 
 winston.configure({
-  // only levels that are equal or above will be logged
   level: process.env.DEBUG ? 'debug' : 'info',
   format: winston.format.combine(
     winston.format.json(),

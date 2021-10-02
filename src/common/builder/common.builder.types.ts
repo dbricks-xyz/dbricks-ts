@@ -6,8 +6,6 @@ import { IBrickArgs, instructionsAndSigners } from '../common.types';
 
 // todo later this will be prod server url
 export const DEFAULT_BASE_URL = 'http://localhost:3000';
-export const DEFAULT_CONNECTION_URL = 'https://api.mainnet-beta.solana.com';
-export const DEFAULT_COMMITTMENT = 'processed';
 
 export enum Protocol {
   Serum = 'Serum',
@@ -99,8 +97,8 @@ export interface ISizedBrick {
 
 export interface IBuilderParams {
   ownerPubkey: PublicKey,
-  connectionUrl?: string,
-  committment?: Commitment,
+  connectionUrl: string,
+  committment: Commitment,
   baseUrl?: string,
   apiKey?: string,
 }
