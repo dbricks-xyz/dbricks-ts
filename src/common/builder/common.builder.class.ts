@@ -1,6 +1,7 @@
 import { Connection, PublicKey, Transaction } from '@solana/web3.js';
 import axios, { AxiosPromise, Method } from 'axios';
 import winston from 'winston';
+import events from 'events';
 import { deserializeInstructionsAndSigners } from '../common.serializers';
 import {
   DEFAULT_BASE_URL,
@@ -13,6 +14,13 @@ import {
   ISizedBrick,
 } from './common.builder.types';
 import { asyncTimeout } from '../common.utils';
+
+export const builderEmitter = new events.EventEmitter.EventEmitter();
+
+function logAndEmit(event: string, msg: string) {
+  winston.debug(msg);
+  builderEmitter.emit(event, msg);
+}
 
 export class Builder {
   connection: Connection;
@@ -58,7 +66,7 @@ export class Builder {
         args: b.args,
       };
     });
-    winston.debug('Parsed bricks:', parsedBricks);
+    logAndEmit('parseBricks', `Parsed bricks: ${parsedBricks}`);
     return parsedBricks;
   }
 
@@ -89,7 +97,7 @@ export class Builder {
         responses[i].data,
       );
     }
-    winston.debug('Fetched bricks from server:', fetchedBricks);
+    logAndEmit('fetchBricks', `Fetched bricks from server: ${fetchedBricks}`);
     return fetchedBricks;
   }
 
@@ -106,12 +114,12 @@ export class Builder {
         }
       });
     });
-    winston.debug('Flattened bricks', flattenedBricks);
+    logAndEmit('flattenBricks', `Flattened bricks: ${flattenedBricks}`);
     return flattenedBricks;
   }
 
   async optimallySizeBricks(flattenedBricks: IFlattenedBrick[]): Promise<ISizedBrick[]> {
-    winston.debug(`Attempting transaction with ${flattenedBricks.length} bricks`);
+    logAndEmit('optimallySizeBricks', `Attempting transaction with ${flattenedBricks.length} bricks.`);
     const attemptedBrick: ISizedBrick = {
       protocols: [],
       actions: [],
@@ -131,11 +139,11 @@ export class Builder {
       const buf = attemptedBrick.transaction.serialize({
         verifySignatures: false,
       });
-      winston.debug(`Transaction of size ${buf.length} fits ${flattenedBricks.length} bricks just ok`);
+      logAndEmit('optimallySizeBricks', `Transaction of size ${buf.length} fits ${flattenedBricks.length} bricks just ok.`);
       return [attemptedBrick];
     } catch (e) {
       const middle = Math.ceil(flattenedBricks.length / 2);
-      winston.debug(`Transaction with ${flattenedBricks.length} bricks is too large, breaking into 2 at ${middle}`);
+      logAndEmit('optimallySizeBricks', `Transaction with ${flattenedBricks.length} bricks is too large, breaking into 2 at ${middle}.`);
       const left = flattenedBricks.splice(0, middle);
       const right = flattenedBricks.splice(-middle);
       return [
@@ -162,23 +170,20 @@ export class Builder {
       }
       stringifiedBricks.push(this.stringifySizedBrick(brick));
     }
+    logAndEmit('updateBlockhashOnSimilarTransactions', 'Blockhash refreshed to prevent duplicates.');
     return sizedBricksCopy;
   }
 
   // the reason we need to take a callback is because there are many different ways to sign
   // eg user can load keypair & sign directly, or they can use a wallet adapter
-  // todo need better type for callback
   async executeBricks(
     sizedBricks: ISizedBrick[],
-    signCallback: (tx: Transaction, ...args:any) => Promise<Transaction>,
+    signCallback: (tx: Transaction, ...args: any) => Promise<Transaction>,
     callbackArgs: any[] = [],
   ): Promise<void> {
-    // todo move to winston
-    // winston.debug('debug!');
-    // winston.info('info!');
-    // winston.warn('warn!');
-    // winston.error('errr!');
+    // eslint-disable-next-line no-restricted-syntax
     for (const b of sizedBricks) {
+      logAndEmit('executeBricksSign', 'Please sign the transaction (wallet might spawn BEHIND your browser window)');
       // sign with the owner's keypair - we want this to be blocking for the loop
       // eslint-disable-next-line no-await-in-loop
       const signedTransaction = await signCallback(b.transaction, ...callbackArgs);
@@ -187,10 +192,17 @@ export class Builder {
         signedTransaction.sign(...b.signers);
       }
       // eslint-disable-next-line no-await-in-loop
-      const sig = await this.connection.sendRawTransaction(signedTransaction.serialize());
-      console.log(`Transaction successful, ${sig}.`);
-      for (let i = 0; i < b.protocols.length; i += 1) {
-        console.log(`${b.protocols[i]}/${b.actions[i]} brick executed.`);
+      try {
+        const sig = await this.connection.sendRawTransaction(signedTransaction.serialize());
+        logAndEmit('executeBricks', `Transaction successful, ${sig}.`);
+        for (let i = 0; i < b.protocols.length; i += 1) {
+          logAndEmit('executeBricks', `${b.protocols[i]}/${b.actions[i]} brick executed.`);
+        }
+      } catch (e) {
+        const msg = `Transaction failed, ${e}`;
+        logAndEmit('executeBricksError', msg);
+        // we don't want to continue the loop if we have a transaction failure.
+        throw new Error(msg);
       }
     }
   }

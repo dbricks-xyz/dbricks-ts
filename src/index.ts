@@ -3,7 +3,7 @@ import winston from 'winston';
 require('dotenv').config();
 
 winston.configure({
-  level: process.env.DEBUG ? 'debug' : 'info',
+  level: (process.env.DEBUG || process.env.VUE_APP_DEBUGgitggggg) ? 'debug' : 'info',
   format: winston.format.combine(
     winston.format.json(),
     winston.format.prettyPrint(),

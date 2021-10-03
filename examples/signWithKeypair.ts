@@ -10,10 +10,9 @@ export function loadKeypairSync(path: string): Keypair {
 
 const ownerKp = loadKeypairSync(process.env.KEYPAIR_PATH as string);
 
-async function sign(tx: Transaction, test1: string, test2: string): Promise<Transaction> {
+async function sign(tx: Transaction): Promise<Transaction> {
   tx.sign(ownerKp);
-  // todo winston.debug
-  console.log(`Transaction signed! ${test1} ${test2}`);
+  winston.debug('Transaction signed!');
   return tx;
 }
 
@@ -52,7 +51,7 @@ async function play() {
       marketPubkey: '3d4rzwpy9iGdCZvgxcu7B1YocYffVLsQXPXkBZKt2zLc',
     },
   });
-  await builder.build(sign, ['hello', 'world']);
+  await builder.build(sign);
   winston.info('All done.');
 }
 
