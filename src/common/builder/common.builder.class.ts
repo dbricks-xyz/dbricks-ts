@@ -189,10 +189,10 @@ export class Builder {
       const signedTransaction = await signCallback(b.transaction, ...callbackArgs);
       // sign with additional signers
       if (b.signers.length > 0) {
-        signedTransaction.sign(...b.signers);
+        signedTransaction.partialSign(...b.signers);
       }
-      // eslint-disable-next-line no-await-in-loop
       try {
+        // eslint-disable-next-line no-await-in-loop
         const sig = await this.connection.sendRawTransaction(signedTransaction.serialize());
         logAndEmit('executeBricks', `Transaction successful, ${sig}.`);
         for (let i = 0; i < b.protocols.length; i += 1) {
