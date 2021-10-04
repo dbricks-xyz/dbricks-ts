@@ -6,7 +6,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "name": "@dbricks/dbricks-ts",
-  "version": "0.0.44",
+  "version": "0.0.45",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
