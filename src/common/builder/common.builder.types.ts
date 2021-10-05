@@ -7,11 +7,7 @@ import { IBrickArgs, instructionsAndSigners } from '../common.types';
 // todo later this will be prod server url
 export const DEFAULT_BASE_URL = 'http://localhost:3000';
 
-export enum Protocol {
-  Serum = 'Serum',
-  Mango = 'Mango',
-  Saber = 'Saber',
-}
+// --------------------------------------- serum
 
 export enum Serum {
   PlaceOrder = 'PlaceOrder',
@@ -26,6 +22,8 @@ export const serumEndpoints = {
   InitMarket: 'POST /serum/markets',
   SettleMarket: 'POST /serum/markets/settle',
 };
+
+// --------------------------------------- mango
 
 export enum Mango {
   Deposit = 'Deposit',
@@ -49,6 +47,8 @@ export const mangoEndpoints = {
   SettlePerpMarket: 'POST /mango/perp/settle',
 };
 
+// --------------------------------------- saber
+
 export enum Saber {
   TBD = 'TBD',
 }
@@ -57,10 +57,68 @@ export const saberEndpoints = {
   TBD: 'POST TBD',
 };
 
+// --------------------------------------- solend
+
+export enum Solend {
+  Deposit = 'Deposit',
+  Withdraw = 'Withdraw',
+  Borrow = 'Borrow',
+  Repay = 'Repay',
+}
+
+export const solendEndpoints = {
+  Deposit: 'POST solend/deposit',
+  Withdraw: 'POST solend/withdraw',
+  Borrow: 'POST solend/borrow',
+  Repay: 'POST solend/repay',
+};
+
+// --------------------------------------- raydium
+
+export enum Raydium {
+  TBD = 'TBD',
+}
+
+export const raydiumEndpoints = {
+  TBD: 'POST TBD',
+};
+
+// --------------------------------------- wormhole
+
+export enum Wormhole {
+  TBD = 'TBD',
+}
+
+export const wormholeEndpoints = {
+  TBD: 'POST TBD',
+};
+
+// --------------------------------------- common
+
+export enum Protocol {
+  Serum = 'Serum',
+  Mango = 'Mango',
+  Saber = 'Saber',
+  Solend = 'Solend',
+  Raydium = 'Raydium',
+  Wormhole = 'Wormhole',
+}
+
 // this is a way of doing nested enums in TS
-export const Action = { Serum, Mango, Saber };
-export const endpoints = { Serum: serumEndpoints, Mango: mangoEndpoints, Saber: saberEndpoints };
-export type IAction = Serum | Mango | Saber;
+export const Action = {
+  Serum, Mango, Saber, Solend, Raydium, Wormhole,
+};
+export const endpoints = {
+  Serum: serumEndpoints,
+  Mango: mangoEndpoints,
+  Saber: saberEndpoints,
+  Solend: solendEndpoints,
+  Raydium: raydiumEndpoints,
+  Wormhole: wormholeEndpoints,
+};
+export type IAction = Serum | Mango | Saber | Solend | Raydium | Wormhole;
+
+// --------------------------------------- interfaces
 
 export interface IRawBrick {
   protocol: Protocol,
