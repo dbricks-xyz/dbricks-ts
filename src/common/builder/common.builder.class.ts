@@ -207,13 +207,54 @@ export class Builder {
     }
   }
 
-  async build(signCallback: any, callbackArgs: any[] = []) {
+  /**
+   * The difference with the previous function is that this one first asks for all signatures,
+   * and only then sends all the transactions.
+   * This is helpful where transactions must as execute close to one another as possible.
+   */
+  async signFirstThenExecuteBricks(
+    sizedBricks: ISizedBrick[],
+    signCallback: (tx: Transaction, ...args: any) => Promise<Transaction>,
+    callbackArgs: any[] = [],
+  ): Promise<void> {
+    const signedTransactions = [];
+    // eslint-disable-next-line no-restricted-syntax
+    for (const b of sizedBricks) {
+      logAndEmit('executeBricksSign', 'Please sign the transaction (wallet might spawn BEHIND your browser window)');
+      // sign with the owner's keypair - we want this to be blocking for the loop
+      // eslint-disable-next-line no-await-in-loop
+      const signedTransaction = await signCallback(b.transaction, ...callbackArgs);
+      // sign with additional signers
+      if (b.signers.length > 0) {
+        signedTransaction.partialSign(...b.signers);
+      }
+      signedTransactions.push(signedTransaction);
+    }
+    for (const signedTransaction of signedTransactions) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const sig = await this.connection.sendRawTransaction(signedTransaction.serialize());
+        logAndEmit('executeBricks', `Transaction successful, ${sig}.`);
+      } catch (e) {
+        const msg = `Transaction failed, ${e}`;
+        logAndEmit('executeBricksError', msg);
+        // we don't want to continue the loop if we have a transaction failure.
+        throw new Error(msg);
+      }
+    }
+  }
+
+  async build(signCallback: any, callbackArgs: any[] = [], signFirst = false) {
     const parsedBricks = this.parseBricks(this.rawBricks);
     const fetchedBricks = await this.fetchBricks(parsedBricks);
     const flattenedBricks = this.flattenBricks(fetchedBricks);
     const sizedBricks = await this.optimallySizeBricks(flattenedBricks);
     const finalBricks = await this.updateBlockhashOnSimilarTransactions(sizedBricks);
-    await this.executeBricks(finalBricks, signCallback, callbackArgs);
+    if (signFirst) {
+      await this.signFirstThenExecuteBricks(finalBricks, signCallback, callbackArgs);
+    } else {
+      await this.executeBricks(finalBricks, signCallback, callbackArgs);
+    }
   }
 
   // --------------------------------------- helpers
