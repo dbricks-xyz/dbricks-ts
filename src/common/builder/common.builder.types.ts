@@ -50,11 +50,21 @@ export const mangoEndpoints = {
 // --------------------------------------- saber
 
 export enum Saber {
-  TBD = 'TBD',
+  Swap = 'Swap',
+  PoolDeposit = 'PoolDeposit',
+  PoolWithdraw = 'PoolWithdraw',
+  FarmDeposit = 'FarmDeposit',
+  FarmWithdraw = 'FarmWithdraw',
+  FarmHarvest = 'FarmHarvest',
 }
 
 export const saberEndpoints = {
-  TBD: 'POST TBD',
+  Swap: 'POST /saber/swap',
+  PoolDeposit: 'POST /saber/pool/deposit',
+  PoolWithdraw: 'POST /saber/pool/withdraw',
+  FarmDeposit: 'POST /saber/farm/deposit',
+  FarmWithdraw: 'POST /saber/farm/withdraw',
+  FarmHarvest: 'POST /saber/farm/harvest',
 };
 
 // --------------------------------------- solend

@@ -24,6 +24,18 @@ import {
   IMangoLenderWithdrawArgs,
   IMangoLenderWithdrawParams,
 } from '../mango';
+import {
+  ISaberPoolDepositArgs,
+  ISaberPoolDepositParams,
+  ISaberPoolWithdrawArgs,
+  ISaberPoolWithdrawParams,
+  ISaberFarmArgs,
+  ISaberFarmParams,
+  ISaberFarmHarvestArgs,
+  ISaberFarmHarvestParams,
+  ISaberSwapArgs,
+  ISaberSwapParams
+} from '../saber';
 
 export type instructionsAndSigners = {
   instructions: TransactionInstruction[],
@@ -42,7 +54,10 @@ export type IBrickArgs =
   // mango
   IMangoLenderDepositArgs | IMangoLenderWithdrawArgs |
   IMangoDEXOrderPlaceArgs | IMangoDEXOrderCancelArgs |
-  IMangoDEXMarketInitArgs | IMangoDEXMarketSettleArgs
+  IMangoDEXMarketInitArgs | IMangoDEXMarketSettleArgs |
+  //saber
+  ISaberPoolDepositArgs | ISaberPoolWithdrawArgs |
+  ISaberSwapArgs | ISaberFarmArgs | ISaberFarmHarvestArgs
 
 export type IBrickParams =
   // serum
@@ -51,4 +66,7 @@ export type IBrickParams =
   // mango
   IMangoLenderDepositParams | IMangoLenderWithdrawParams |
   IMangoDEXOrderPlaceParams | IMangoDEXOrderCancelParams |
-  IMangoDEXMarketInitParams | IMangoDEXMarketSettleParams
+  IMangoDEXMarketInitParams | IMangoDEXMarketSettleParams |
+  //saber
+  ISaberPoolDepositParams | ISaberPoolWithdrawParams |
+  ISaberSwapParams | ISaberFarmParams | ISaberFarmHarvestParams
