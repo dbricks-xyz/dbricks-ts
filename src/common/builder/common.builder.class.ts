@@ -1,13 +1,18 @@
-import { Connection, PublicKey, Transaction } from '@solana/web3.js';
+/* eslint-disable no-await-in-loop */
+/* eslint-disable no-restricted-syntax */
+import {
+  Connection, Keypair, PublicKey, Signer, Transaction, TransactionSignature,
+} from '@solana/web3.js';
 import axios, { AxiosPromise, Method } from 'axios';
 import winston from 'winston';
 import events from 'events';
 import { deserializeInstructionsAndSigners } from '../common.serializers';
 import {
+  connectedAdapter,
   DEFAULT_BASE_URL,
   endpoints,
   IBuilderParams,
-  IFetchedBrick,
+  IFetchedBrick, IFinalBuildParams,
   IFlattenedBrick,
   IParsedBrick,
   IRawBrick,
@@ -73,6 +78,7 @@ export class Builder {
   async fetchBricks(parsedBricks: IParsedBrick[]): Promise<IFetchedBrick[]> {
     const fetchedBricks: IFetchedBrick[] = [];
     const requests: AxiosPromise[] = [];
+    logAndEmit('fetchBricks', 'Connecting to dbricks server, stand by...');
     parsedBricks.forEach((b) => {
       const request = axios({
         baseURL: this.baseUrl,
@@ -159,14 +165,11 @@ export class Builder {
     const sizedBricksCopy = [...sizedBricks];
     const stringifiedBricks: string[] = [];
 
-    // eslint-disable-next-line no-restricted-syntax
     for (const brick of sizedBricksCopy) {
       while (brick.transaction.recentBlockhash
       && stringifiedBricks.indexOf(this.stringifySizedBrick(brick)) !== -1) {
-        /* eslint-disable no-await-in-loop */
         await asyncTimeout(2000);
         brick.transaction.recentBlockhash = (await this.connection.getRecentBlockhash()).blockhash;
-        /* eslint-enable no-await-in-loop */
       }
       stringifiedBricks.push(this.stringifySizedBrick(brick));
     }
@@ -174,26 +177,26 @@ export class Builder {
     return sizedBricksCopy;
   }
 
-  // the reason we need to take a callback is because there are many different ways to sign
-  // eg user can load keypair & sign directly, or they can use a wallet adapter
   async executeBricks(
     sizedBricks: ISizedBrick[],
-    signCallback: (tx: Transaction, ...args: any) => Promise<Transaction>,
-    callbackArgs: any[] = [],
+    keypair?: Keypair,
+    connectedAdapter?: connectedAdapter,
+    signCallback?: (tx: Transaction, ...args: any) => Promise<Transaction>,
+    callbackArgs?: any[],
   ): Promise<void> {
-    // eslint-disable-next-line no-restricted-syntax
+    if (!keypair && !connectedAdapter && !signCallback) {
+      throw new Error('You need to pass one of: 1)sign callback, 2)wallet adapter, 3)owner keypair');
+    }
     for (const b of sizedBricks) {
-      logAndEmit('executeBricksSign', 'Please sign the transaction (wallet might spawn BEHIND your browser window)');
-      // sign with the owner's keypair - we want this to be blocking for the loop
-      // eslint-disable-next-line no-await-in-loop
-      const signedTransaction = await signCallback(b.transaction, ...callbackArgs);
-      // sign with additional signers
-      if (b.signers.length > 0) {
-        signedTransaction.partialSign(...b.signers);
-      }
       try {
-        // eslint-disable-next-line no-await-in-loop
-        const sig = await this.connection.sendRawTransaction(signedTransaction.serialize());
+        let sig;
+        if (keypair) {
+          sig = this.sendWithKeypair(b.transaction, keypair, b.signers);
+        } else if (connectedAdapter) {
+          sig = this.sendWithWallet(b.transaction, connectedAdapter, b.signers);
+        } else if (signCallback) {
+          sig = this.sendWithCallback(b.transaction, signCallback, callbackArgs, b.signers);
+        }
         logAndEmit('executeBricks', `Transaction successful, ${sig}.`);
         for (let i = 0; i < b.protocols.length; i += 1) {
           logAndEmit('executeBricks', `${b.protocols[i]}/${b.actions[i]} brick executed.`);
@@ -207,54 +210,51 @@ export class Builder {
     }
   }
 
-  /**
-   * The difference with the previous function is that this one first asks for all signatures,
-   * and only then sends all the transactions.
-   * This is helpful where transactions must as execute close to one another as possible.
-   */
-  async signFirstThenExecuteBricks(
-    sizedBricks: ISizedBrick[],
-    signCallback: (tx: Transaction, ...args: any) => Promise<Transaction>,
-    callbackArgs: any[] = [],
-  ): Promise<void> {
-    const signedTransactions = [];
-    // eslint-disable-next-line no-restricted-syntax
-    for (const b of sizedBricks) {
-      logAndEmit('executeBricksSign', 'Please sign the transaction (wallet might spawn BEHIND your browser window)');
-      // sign with the owner's keypair - we want this to be blocking for the loop
-      // eslint-disable-next-line no-await-in-loop
-      const signedTransaction = await signCallback(b.transaction, ...callbackArgs);
-      // sign with additional signers
-      if (b.signers.length > 0) {
-        signedTransaction.partialSign(...b.signers);
-      }
-      signedTransactions.push(signedTransaction);
-    }
-    for (const signedTransaction of signedTransactions) {
-      try {
-        // eslint-disable-next-line no-await-in-loop
-        const sig = await this.connection.sendRawTransaction(signedTransaction.serialize());
-        logAndEmit('executeBricks', `Transaction successful, ${sig}.`);
-      } catch (e) {
-        const msg = `Transaction failed, ${e}`;
-        logAndEmit('executeBricksError', msg);
-        // we don't want to continue the loop if we have a transaction failure.
-        throw new Error(msg);
-      }
-    }
+  async sendWithKeypair(
+    transaction: Transaction,
+    keypair: Keypair,
+    additionalSigners: Signer[],
+  ): Promise<TransactionSignature> {
+    transaction.sign(keypair, ...additionalSigners);
+    return this.connection.sendRawTransaction(transaction.serialize());
   }
 
-  async build(signCallback: any, callbackArgs: any[] = [], signFirst = false) {
+  async sendWithWallet(
+    transaction: Transaction,
+    connectedAdapter: connectedAdapter,
+    additionalSigners: Signer[],
+  ): Promise<TransactionSignature> {
+    logAndEmit('executeBricksSign', 'Please sign the transaction (wallet might spawn BEHIND your browser window)');
+    return connectedAdapter.sendTransaction(transaction, this.connection, {
+      signers: additionalSigners,
+    });
+  }
+
+  async sendWithCallback(
+    transaction: Transaction,
+    signCallback: (tx: Transaction, ...args: any) => Promise<Transaction>,
+    callbackArgs: any[] = [],
+    additionalSigners: Signer[],
+  ): Promise<TransactionSignature> {
+    const signedTransaction = await signCallback(transaction, ...callbackArgs);
+    if (additionalSigners.length > 0) {
+      signedTransaction.partialSign(...additionalSigners);
+    }
+    return this.connection.sendRawTransaction(signedTransaction.serialize());
+  }
+
+  async build({
+    keypair,
+    connectedAdapter,
+    signCallback,
+    callbackArgs,
+  } = {} as IFinalBuildParams) {
     const parsedBricks = this.parseBricks(this.rawBricks);
     const fetchedBricks = await this.fetchBricks(parsedBricks);
     const flattenedBricks = this.flattenBricks(fetchedBricks);
     const sizedBricks = await this.optimallySizeBricks(flattenedBricks);
     const finalBricks = await this.updateBlockhashOnSimilarTransactions(sizedBricks);
-    if (signFirst) {
-      await this.signFirstThenExecuteBricks(finalBricks, signCallback, callbackArgs);
-    } else {
-      await this.executeBricks(finalBricks, signCallback, callbackArgs);
-    }
+    await this.executeBricks(finalBricks, keypair, connectedAdapter, signCallback, callbackArgs);
   }
 
   // --------------------------------------- helpers

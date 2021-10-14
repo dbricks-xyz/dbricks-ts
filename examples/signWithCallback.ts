@@ -1,8 +1,17 @@
+import { Transaction } from '@solana/web3.js';
 import winston from 'winston';
-import { Action, Builder, Protocol } from '../src';
 import { loadKeypairSync } from './util';
+import { Action, Builder, Protocol } from '../src';
+
+require('dotenv').config();
 
 const ownerKp = loadKeypairSync(process.env.KEYPAIR_PATH as string);
+
+async function sign(tx: Transaction): Promise<Transaction> {
+  tx.sign(ownerKp);
+  winston.debug('Transaction signed!');
+  return tx;
+}
 
 async function play() {
   const builder = new Builder({
@@ -40,9 +49,9 @@ async function play() {
     },
   });
   await builder.build({
-    keypair: ownerKp,
+    signCallback: sign,
   });
-  winston.info('All done (using keypair).');
+  winston.info('All done (using callback).');
 }
 
 play();

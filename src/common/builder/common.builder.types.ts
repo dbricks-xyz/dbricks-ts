@@ -1,7 +1,12 @@
 import { Method } from 'axios';
 import {
-  Commitment, PublicKey, Signer, Transaction,
+  Commitment, Keypair, PublicKey, Signer, Transaction,
 } from '@solana/web3.js';
+import {
+  MessageSignerWalletAdapter,
+  SignerWalletAdapter,
+  WalletAdapter,
+} from '@solana/wallet-adapter-base';
 import { IBrickArgs, instructionsAndSigners } from '../common.types';
 
 export const DEFAULT_BASE_URL = 'http://localhost:3000';
@@ -252,4 +257,13 @@ export interface IBuilderParams {
   committment: Commitment,
   baseUrl?: string,
   apiKey?: string,
+}
+
+export type connectedAdapter = WalletAdapter | SignerWalletAdapter | MessageSignerWalletAdapter;
+
+export interface IFinalBuildParams {
+  keypair?: Keypair,
+  connectedAdapter?: connectedAdapter,
+  signCallback?: (tx: Transaction, ...args: any) => Promise<Transaction>,
+  callbackArgs?: any[],
 }
