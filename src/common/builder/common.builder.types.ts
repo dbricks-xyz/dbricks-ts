@@ -103,6 +103,66 @@ export const wormholeEndpoints = {
   TBD: 'POST TBD',
 };
 
+// --------------------------------------- sunny
+
+export enum Sunny {
+  TBD = 'TBD',
+}
+
+export const sunnyEndpoints = {
+  TBD: 'POST TBD',
+};
+
+// --------------------------------------- orca
+
+export enum Orca {
+  TBD = 'TBD',
+}
+
+export const orcaEndpoints = {
+  TBD: 'POST TBD',
+};
+
+// --------------------------------------- solfarm
+
+export enum Solfarm {
+  TBD = 'TBD',
+}
+
+export const solfarmEndpoints = {
+  TBD: 'POST TBD',
+};
+
+// --------------------------------------- parrot
+
+export enum Parrot {
+  TBD = 'TBD',
+}
+
+export const parrotEndpoints = {
+  TBD: 'POST TBD',
+};
+
+// --------------------------------------- marinade
+
+export enum Marinade {
+  TBD = 'TBD',
+}
+
+export const marinadeEndpoints = {
+  TBD: 'POST TBD',
+};
+
+// --------------------------------------- mercurial
+
+export enum Mercurial {
+  TBD = 'TBD',
+}
+
+export const mercurialEndpoints = {
+  TBD: 'POST TBD',
+};
+
 // --------------------------------------- common
 
 export enum Protocol {
@@ -112,11 +172,17 @@ export enum Protocol {
   Solend = 'Solend',
   Raydium = 'Raydium',
   Wormhole = 'Wormhole',
+  Sunny = 'Sunny',
+  Orca = 'Orca',
+  Solfarm = 'Solfarm',
+  Parrot = 'Parrot',
+  Marinade = 'Marinade',
+  Mercurial = 'Mercurial',
 }
 
 // this is a way of doing nested enums in TS
 export const Action = {
-  Serum, Mango, Saber, Solend, Raydium, Wormhole,
+  Serum, Mango, Saber, Solend, Raydium, Wormhole, Sunny, Orca, Solfarm, Parrot, Marinade, Mercurial,
 };
 export const endpoints = {
   Serum: serumEndpoints,
@@ -125,8 +191,26 @@ export const endpoints = {
   Solend: solendEndpoints,
   Raydium: raydiumEndpoints,
   Wormhole: wormholeEndpoints,
+  Sunny: sunnyEndpoints,
+  Orca: orcaEndpoints,
+  Solfarm: solfarmEndpoints,
+  Parrot: parrotEndpoints,
+  Marinade: marinadeEndpoints,
+  Mercurial: mercurialEndpoints,
 };
-export type IAction = Serum | Mango | Saber | Solend | Raydium | Wormhole;
+export type IAction =
+  Serum
+  | Mango
+  | Saber
+  | Solend
+  | Raydium
+  | Wormhole
+  | Sunny
+  | Orca
+  | Solfarm
+  | Parrot
+  | Marinade
+  | Mercurial;
 
 // --------------------------------------- interfaces
 
