@@ -4,7 +4,6 @@ import {
 } from '@solana/web3.js';
 import { IBrickArgs, instructionsAndSigners } from '../common.types';
 
-// todo later this will be prod server url
 export const DEFAULT_BASE_URL = 'http://localhost:3000';
 
 // --------------------------------------- serum
@@ -39,10 +38,10 @@ export enum Mango {
 export const mangoEndpoints = {
   Deposit: 'POST /mango/deposit',
   Withdraw: 'POST /mango/withdraw',
-  PlaceSpotOrder: 'POST /mango/spot/place', // todo fix route
+  PlaceSpotOrder: 'POST /mango/spot/place',
   CancelSpotOrder: 'POST /mango/spot/cancel',
   SettleSpotMarket: 'POST /mango/spot/settle',
-  PlacePerpOrder: 'POST /mango/perp/place', // todo fix route
+  PlacePerpOrder: 'POST /mango/perp/place',
   CancelPerpOrder: 'POST /mango/perp/cancel',
   SettlePerpMarket: 'POST /mango/perp/settle',
 };
