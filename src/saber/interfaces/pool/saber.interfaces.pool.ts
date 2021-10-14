@@ -18,11 +18,11 @@ export interface ISaberSwapArgs {
 export interface ISaberPoolDepositParams extends ISaberPoolDepositArgs {
     ownerPubkey: string,
 }
-  
+
 export interface ISaberPoolWithdrawParams extends ISaberPoolWithdrawArgs {
     ownerPubkey: string,
 }
-  
+
 export interface ISaberSwapParams extends ISaberSwapArgs {
     ownerPubkey: string,
 }

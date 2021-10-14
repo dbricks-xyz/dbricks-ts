@@ -10,7 +10,7 @@ export interface ISaberFarmHarvestArgs {
 export interface ISaberFarmParams extends ISaberFarmArgs {
     ownerPubkey: string,
 }
-  
+
 export interface ISaberFarmHarvestParams extends ISaberFarmHarvestArgs {
     ownerPubkey: string,
 }
