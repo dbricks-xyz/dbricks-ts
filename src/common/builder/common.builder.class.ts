@@ -191,11 +191,11 @@ export class Builder {
       try {
         let sig;
         if (keypair) {
-          sig = this.sendWithKeypair(b.transaction, keypair, b.signers);
+          sig = await this.sendWithKeypair(b.transaction, keypair, b.signers);
         } else if (connectedAdapter) {
-          sig = this.sendWithWallet(b.transaction, connectedAdapter, b.signers);
+          sig = await this.sendWithWallet(b.transaction, connectedAdapter, b.signers);
         } else if (signCallback) {
-          sig = this.sendWithCallback(b.transaction, signCallback, callbackArgs, b.signers);
+          sig = await this.sendWithCallback(b.transaction, signCallback, callbackArgs, b.signers);
         }
         logAndEmit('executeBricks', `Transaction successful, ${sig}.`);
         for (let i = 0; i < b.protocols.length; i += 1) {
@@ -224,10 +224,12 @@ export class Builder {
     connectedAdapter: connectedAdapter,
     additionalSigners: Signer[],
   ): Promise<TransactionSignature> {
-    logAndEmit('executeBricksSign', 'Please sign the transaction (wallet might spawn BEHIND your browser window)');
-    return connectedAdapter.sendTransaction(transaction, this.connection, {
+    logAndEmit('executeBricksSign', 'Please sign the transaction');
+    const sig = await connectedAdapter.sendTransaction(transaction, this.connection, {
       signers: additionalSigners,
     });
+    await this.connection.confirmTransaction(sig, 'processed');
+    return sig;
   }
 
   async sendWithCallback(

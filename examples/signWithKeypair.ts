@@ -16,7 +16,7 @@ async function play() {
     args: {
       marketPubkey: '3d4rzwpy9iGdCZvgxcu7B1YocYffVLsQXPXkBZKt2zLc',
       side: 'buy',
-      price: '0.5',
+      price: '0.3',
       size: '1',
       orderType: 'limit',
     },
